@@ -129,3 +129,9 @@ Create sample_pairs_file, consisting of 1 line for each pair, following the form
     FUNC_DIR \ ## output directory
     ~/genome/human/hg19_fasta_gtf/genome_hg19.fa \
     ~/genome/human/mutect2_resources/funcotator_dataSources.v1.7.20200521s ## funcotator resources downloaded from GATK
+    
+### 5. Merge annotated files (maf) into single file
+	Rscript maftools_preprocess.R FUNC_DIR
+	
+## PLOT FINAL VARIANTS
+See maftools.Rmd for plotting information (oncoplot)
