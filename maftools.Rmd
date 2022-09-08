@@ -1,0 +1,122 @@
+---
+title: "R Notebook"
+output: html_document
+---
+
+```{r}
+library(maftools)
+library(ggplot2)
+library(data.table)
+
+base_dir = "/Users/jlabelle/"
+working_dir<- paste0(base_dir, 
+                     "Dropbox (Partners HealthCare)/FilbinLab/data_analysis/Projects/Midline_WES_072122/")
+
+
+analysis_name<- "FilterOutPoNVariants"
+
+analysis_dir<- paste0("analysis/", analysis_name, "/")
+figure_dir<- paste0("figures/", analysis_name, "/")
+#adult_analysis_dir<- paste0(working_dir, "../Adult/analysis/", analysis_name, "/")
+
+if(!dir.exists(analysis_dir)){dir.create(analysis_dir, recursive = TRUE)}
+if(!dir.exists(figure_dir)){dir.create(figure_dir, recursive = TRUE)}
+
+filter_out_PoN_variants<-TRUE
+
+
+```
+
+## Load in maf files, GOI, and PoN
+```{r}
+## Read in GOI and Panel of normals used for mutect2 (if any)
+GOI<- read.table("GOIs.txt")
+pon<- read.csv("PoN.csv")
+
+## load in Ped maf
+maf_merged<- readRDS("maf_merged.Rds")
+maf_TN<- maf_merged; rm(maf_merged)
+
+```
+
+## Process maf file
+```{r}
+## filter to just exonic variants
+maf_TN<- subsetMaf(maf=maf_TN, query="Transcript_Exon!='NA'")
+
+## Optional: filter out any variants found in PoN
+if(filter_out_PoN_variants){
+  print(paste0("Number of unfiltered variants: ", nrow(maf_TN@data)))
+  pon$UniqueID<- paste0(pon$X.CHROM, ":", pon$POS); pon$UniqueID<- gsub("chr", "", pon$UniqueID)
+  maf_TN@data$UniqueID<- paste0(maf_TN@data$Chromosome, ":", maf_TN@data$Start_Position)
+  maf_TN@data<- maf_TN@data[!maf_TN@data$UniqueID %in% pon$UniqueID,]
+  print(paste0("Number of filtered variants: ", nrow(maf_TN@data)))
+}
+
+## Remove "_filtered" from name for simplicity
+#maf_TN@data$Tumor_Sample_Barcode<- gsub("_filtered", "", maf_TN@data$Tumor_Sample_Barcode)
+#maf_TN@clinical.data$Tumor_Sample_Barcode<- gsub("_filtered", "", maf_TN@clinical.data$Tumor_Sample_Barcode)
+```
+
+## Exploratory plots: tumor/normal
+```{r}
+jpeg(paste0(figure_dir, "mergedTN_mafSummary.jpg"), width=1000, height=500)
+plotmafSummary(maf=maf_TN, rmOutlier = TRUE, addStat = 'median', dashboard = TRUE, 
+               titvRaw = FALSE, showBarcodes = TRUE)
+dev.off()
+
+jpeg(paste0(figure_dir, "mergedTN_mafBarPlot.jpg"), width=800, height=500)
+mafbarplot(maf=maf_TN) 
+dev.off()
+
+jpeg(paste0(figure_dir, "mergedTN_oncoplot_GOI.jpg"), width=800, height=500)
+oncoplot(maf=maf_TN, top=10, clinicalFeatures = c("type"),  showTumorSampleBarcodes=TRUE,
+         genes=c(GOI$V1, "H3-3A"))
+dev.off()
+
+jpeg(paste0(figure_dir, "mergedTN_oncoplot_top30.jpg"), width=800, height=500)
+oncoplot(maf=maf_TN, top=30, clinicalFeatures = c("type"),showTumorSampleBarcodes=TRUE,)
+dev.off()
+```
+
+
+
+## Manually plot number of genes mutated across each sample, grouped by type
+```{r}
+## Create df for plotting
+maf_df<- maf_TN@data
+maf_clinical<- maf_TN@clinical.data
+maf_bd<- as.data.frame(table(maf_df$Tumor_Sample_Barcode))
+colnames(maf_bd)<- c("Sample", "NumberVariants")
+maf_bd$Type<- plyr::mapvalues(maf_bd$Sample, maf_clinical$Tumor_Sample_Barcode, maf_clinical$type)
+
+
+ggplot(maf_bd, aes(x=reorder(Sample, NumberVariants), y=NumberVariants))+
+  geom_bar(position="dodge", stat="identity")+
+  ggtitle(label="Number of variants per sample, by tumor type")+
+  facet_grid(cols=vars(Type), scale="free_x", space="free_x")+
+  theme(axis.text.x = element_text(angle=45, hjust=1))+
+  xlab("")
+
+ggsave(paste0(figure_dir, "NumberVariantsPerSample_ByNormalTumor.jpg"), width=8, height=5)
+
+
+
+
+```
+
+## Save csv of merged maf file
+```{r}
+maf_df<- maf_TN@data
+maf_df$sampleType<- plyr::mapvalues(maf_df$Tumor_Sample_Barcode, maf_TN@clinical.data$Tumor_Sample_Barcode, maf_TN@clinical.data$type,
+                             warn_missing = FALSE)
+maf_df$sampleType<- gsub("Normal", "Ped_Normal", gsub("Tumor", "Ped_Tumor", maf_df$sampleType))
+maf_df<- as.data.frame(maf_df)
+maf_df<- maf_df[,c(ncol(maf_df), 1:(ncol(maf_df)-1))]
+
+write.csv(maf_df, file=paste0(analysis_dir, "all_variants_maf.csv"))
+```
+
+
+
+
