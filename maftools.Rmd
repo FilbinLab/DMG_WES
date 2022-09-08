@@ -10,7 +10,7 @@ library(data.table)
 
 base_dir = "/Users/jlabelle/"
 working_dir<- paste0(base_dir, 
-                     "Dropbox (Partners HealthCare)/FilbinLab/data_analysis/Projects/Midline_WES_072122/")
+                     "Dropbox (Partners HealthCare)/FilbinLab/data_analysis/Projects/git_repos/DMG_WES/")
 
 
 analysis_name<- "FilterOutPoNVariants"
