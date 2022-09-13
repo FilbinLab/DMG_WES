@@ -57,7 +57,7 @@ Bam file sorting also performed in this script
 Run Mutect2 in tumor-only mode for each normal sample
 Before running, create "Normals" dir in BQSR_DIR (processed bams) and move all normal bams to that dir
 
-***Alternatively, can use GATK pre-built PoN*** *(Not used for the DMG analysis)*
+***Alternatively, can use GATK pre-built PoN*** *(Not used for the DMG analysis)*  
  
 	  source ~/scripts/bwa/mutect2_normals-batch.sh \
 	  BQSR_DIR/Normals \
@@ -84,7 +84,7 @@ Note: if you moved the normal bams to a separate directory in the PoN step, move
 for af-alleles-in-reference, can set to -1 to skip this filter
 
 #### Option 1: Paired tumor/normal (PoN can be from GATK or built from all normals in cohort)
-*This option used for the DMG analysis*
+*This option used for the DMG analysis*  
 Create dir within AddReadGroup with just the samples with paired normal/tumor
 Create sample_pairs_file, consisting of 1 line for each pair, following the format: normalSampleName=tumorSampleName
 
